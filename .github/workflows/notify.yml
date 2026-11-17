@@ -1,0 +1,28 @@
+name: Daily Hot Local AI Notifier
+
+on:
+  schedule:
+    - cron: '0 1 * * *' # Chạy tự động vào lúc 01:00 UTC mỗi ngày (tương đương 8h sáng giờ Việt Nam)
+  workflow_dispatch: # Cho phép bạn bấm nút chạy thủ công (Manual trigger) trên giao diện GitHub bất cứ lúc nào
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run notifier script
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: npx ts-node src/index.ts
