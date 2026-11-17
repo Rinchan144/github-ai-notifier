@@ -11,11 +11,13 @@ interface GitHubRepo {
   description: string;
   stargazers_count: number;
   language: string;
+  topics?: string[];
 }
 
 async function fetchHotLocalAIRepos(): Promise<GitHubRepo[]> {
-  // Tìm các repo về local AI, Ollama, LLM cập nhật gần đây, sắp xếp theo sao (stars) giảm dần
-  const query = encodeURIComponent('topic:local-ai OR topic:ollama OR topic:llm pushed:>2026-11-01');
+  // Bộ lọc kết hợp: Local AI / MCP / Ollama + các từ khóa về Agent, Skill, Markdown management
+  const queryKeywords = '(topic:local-ai OR topic:ollama OR topic:llm OR topic:mcp) (markdown OR agent OR skill OR prompt)';
+  const query = encodeURIComponent(`${queryKeywords} pushed:>2026-11-01`);
   const url = `https://api.github.com/search/repositories?q=${query}&sort=stars&order=desc&per_page=5`;
 
   const response = await fetch(url, {
@@ -54,18 +56,23 @@ async function sendTelegramMessage(text: string) {
 
 async function main() {
   try {
-    console.log('Fetching hot local AI repos from GitHub...');
+    console.log('Fetching hot Local AI & Agent Markdown repos from GitHub...');
     const repos = await fetchHotLocalAIRepos();
 
     if (!repos || repos.length === 0) {
-      console.log('No new repositories found.');
+      console.log('No matching repositories found.');
       return;
     }
 
-    let message = `🔥 *Top Local AI Projects on GitHub* 🔥\n\n`;
+    let message = `🔥 *Top Local AI & Agent Markdown Repos* 🔥\n\n`;
     repos.forEach((repo, index) => {
+      const topicsStr = repo.topics && repo.topics.length > 0 
+        ? repo.topics.slice(0, 3).map(t => `#${t}`).join(' ') 
+        : '';
+
       message += `${index + 1}. *[${repo.full_name}](${repo.html_url})*\n`;
       message += `⭐ ${repo.stargazers_count} | 💻 ${repo.language || 'N/A'}\n`;
+      if (topicsStr) message += `🏷️ ${topicsStr}\n`;
       message += `📝 ${repo.description ? repo.description.slice(0, 100) + '...' : 'No description'}\n\n`;
     });
 
