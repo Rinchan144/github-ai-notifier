@@ -113,6 +113,8 @@ async function main() {
 
     if (totalFound === 0) {
       console.log('No new unique repositories found.');
+      // Gửi tin nhắn test báo cáo để biết bot đã chạy thành công
+      await sendTelegramMessage("🤖 *GitHub AI Notifier:* Hôm nay không có repo Local AI mới nào khớp với bộ lọc.");
       return;
     }
 
