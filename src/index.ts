@@ -3,6 +3,7 @@ dotenv.config();
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN; // Lấy token từ biến môi trường
 
 interface GitHubRepo {
   name: string;
@@ -46,14 +47,24 @@ const CATEGORIES: CategoryConfig[] = [
 async function fetchReposForQuery(query: string): Promise<GitHubRepo[]> {
   const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=3`;
 
-  const response = await fetch(url, {
-    headers: {
-      'Accept': 'vnd.github+json',
-      'User-Agent': 'GitHub-AI-Notifier'
-    }
-  });
+  // Cấu hình headers có đính kèm GitHub Token để tránh bị timeout/rate limit
+  const headers: Record<string, string> = {
+    'Accept': 'vnd.github+json',
+    'User-Agent': 'GitHub-AI-Notifier'
+  };
 
-  if (!response.ok) return [];
+  if (GITHUB_TOKEN) {
+    headers['Authorization'] = `Bearer ${GITHUB_TOKEN}`;
+  }
+
+  const response = await fetch(url, { headers });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error(`GitHub API error (${response.status}): ${errText}`);
+    return [];
+  }
+
   const data = await response.json() as { items?: GitHubRepo[] };
   return data.items || [];
 }
@@ -77,19 +88,15 @@ async function main() {
     console.log('Fetching and deduplicating local AI repos...');
     let message = `🔥 *Top Local AI & Agent Highlights* 🔥\n`;
     
-    // Set dùng để theo dõi các repo đã được in ra trước đó
     const seenRepos = new Set<string>();
     let totalFound = 0;
 
     for (const cat of CATEGORIES) {
       const repos = await fetchReposForQuery(cat.query);
       
-      // Lọc bỏ những repo đã tồn tại trong set seenRepos
       const uniqueRepos = repos.filter(repo => {
-        if (seenRepos.has(repo.full_name)) {
-          return false; // Trùng -> Loại bỏ
-        }
-        seenRepos.add(repo.full_name); // Chưa có -> Thêm vào danh sách đã thấy
+        if (seenRepos.has(repo.full_name)) return false;
+        seenRepos.add(repo.full_name);
         return true;
       });
 
