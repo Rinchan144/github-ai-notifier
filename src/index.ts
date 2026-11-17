@@ -3,7 +3,7 @@ dotenv.config();
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN; // Lấy token từ biến môi trường
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN; // Lấy token từ biến môi trường (Hỗ trợ GitHub Actions)
 
 interface GitHubRepo {
   name: string;
@@ -21,6 +21,7 @@ interface CategoryConfig {
   query: string;
 }
 
+// Định nghĩa các danh mục theo dõi chuyên sâu về Local AI, Agent, Markdown & MCP
 const CATEGORIES: CategoryConfig[] = [
   {
     name: "Coding & IDE Assistants",
@@ -47,7 +48,6 @@ const CATEGORIES: CategoryConfig[] = [
 async function fetchReposForQuery(query: string): Promise<GitHubRepo[]> {
   const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=3`;
 
-  // Cấu hình headers có đính kèm GitHub Token để tránh bị timeout/rate limit
   const headers: Record<string, string> = {
     'Accept': 'vnd.github+json',
     'User-Agent': 'GitHub-AI-Notifier'
@@ -71,7 +71,7 @@ async function fetchReposForQuery(query: string): Promise<GitHubRepo[]> {
 
 async function sendTelegramMessage(text: string) {
   const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-  await fetch(url, {
+  const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -81,6 +81,12 @@ async function sendTelegramMessage(text: string) {
       disable_web_page_preview: true
     })
   });
+
+  // Bắt lỗi trực tiếp từ Telegram API nếu token hoặc chat_id không hợp lệ
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Telegram API Error (${response.status}): ${errorBody}`);
+  }
 }
 
 async function main() {
@@ -88,6 +94,7 @@ async function main() {
     console.log('Fetching and deduplicating local AI repos...');
     let message = `🔥 *Top Local AI & Agent Highlights* 🔥\n`;
     
+    // Set dùng để lọc bỏ các repo bị trùng lặp giữa các danh mục
     const seenRepos = new Set<string>();
     let totalFound = 0;
 
@@ -113,13 +120,13 @@ async function main() {
 
     if (totalFound === 0) {
       console.log('No new unique repositories found.');
-      // Gửi tin nhắn test báo cáo để biết bot đã chạy thành công
-      await sendTelegramMessage("🤖 *GitHub AI Notifier:* Hôm nay không có repo Local AI mới nào khớp với bộ lọc.");
+      // Gửi thông báo nhẹ nhàng để xác nhận bot vẫn đang hoạt động bình thường
+      await sendTelegramMessage("🤖 *GitHub AI Notifier:* Bot đang chạy định kỳ, nhưng hôm nay chưa tìm thấy repo mới nào khớp bộ lọc.");
       return;
     }
 
     await sendTelegramMessage(message);
-    console.log('Deduplicated notification sent successfully!');
+    console.log('Deduplicated notification sent to Telegram successfully!');
   } catch (error) {
     console.error('Error running notifier:', error);
     process.exit(1);
