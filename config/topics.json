@@ -1,0 +1,12 @@
+{
+  "topics": [
+    {
+      "category": "💻 Coding & AI Assistants",
+      "query": "AI agent OR MCP OR local-ai"
+    },
+    {
+      "category": "🧪 QA & Test Automation",
+      "query": "playwright OR test-automation OR software-testing"
+    }
+  ]
+}

@@ -1,58 +1,52 @@
-name: GitHub AI Notifier Daily Run
+name: GitHub AI Notifier Enterprise V3
 
 on:
   schedule:
-    - cron: '0 2 * * *' # Chạy vào lúc 02:00 UTC (tương đương 09:00 sáng giờ Việt Nam mỗi ngày)
-  workflow_dispatch:     # Cho phép bấm nút chạy thủ công (Manual Trigger) trên GitHub Actions
-
-# Cấp quyền ghi để bot có thể tự động git push file state.json cập nhật ngược lại repo
-permissions:
-  contents: write
+    # Chạy tự động mỗi ngày vào lúc 08:00 sáng UTC (có thể điều chỉnh theo giờ bạn muốn)
+    - cron: '0 8 * * *'
+  workflow_dispatch: # Cho phép kích hoạt thủ công từ tab Actions trên GitHub
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
+    
+    # QUAN TRỌNG: Cấp quyền ghi (write) để workflow có thể commit và push file history ngược lại repo
+    permissions:
+      contents: write
 
     steps:
-      # 1. Checkout mã nguồn repo
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          persist-credentials: true
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      # 2. Cài đặt môi trường Node.js v20
-      - name: Set up Node.js
+      - name: Setup Node.js environment
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      # 3. Cài đặt dependencies sạch từ package-lock.json
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      # 4. Chạy bot TypeScript (dùng tsx) kèm truyền biến môi trường từ Secrets
-      - name: Run AI Notifier Bot
+      - name: Run Telegram Notifier Bot
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Nếu bạn có GITHUB_TOKEN riêng, GitHub Actions tự cung cấp, nhưng truyền vào đây giúp tăng rate limit API
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx tsx src/index.ts
 
-      # 5. Tự động commit và push file state.json (lịch sử chống trùng lặp) trở lại repo
-      - name: Commit and push state updates
+      - name: Commit and push updated state and archives
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          git status
+          # Add file state, toàn bộ thư mục archives (bao gồm cả các file .md và file INDEX.md)
+          git add data/sent-history.json archives/
           
-          # Kiểm tra xem state.json có thay đổi không; nếu có thì tiến hành commit & push
-          if git diff --quiet state.json; then
-            echo "No changes in state.json to commit."
+          # Kiểm tra xem có thay đổi thực sự nào không
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
           else
-            git add state.json
-            git commit -m "chore: update bot state.json automatically [skip ci]"
+            git commit -m "chore: update sent history, markdown archives, and index [skip ci]"
             git push
           fi
