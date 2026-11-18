@@ -1,29 +1,58 @@
-name: Daily Hot Local AI Notifier
+name: GitHub AI Notifier Daily Run
 
 on:
   schedule:
-    - cron: '0 1 * * *'
-  workflow_dispatch:
+    - cron: '0 2 * * *' # Chạy vào lúc 02:00 UTC (tương đương 09:00 sáng giờ Việt Nam mỗi ngày)
+  workflow_dispatch:     # Cho phép bấm nút chạy thủ công (Manual Trigger) trên GitHub Actions
+
+# Cấp quyền ghi để bot có thể tự động git push file state.json cập nhật ngược lại repo
+permissions:
+  contents: write
 
 jobs:
-  notify:
+  run-bot:
     runs-on: ubuntu-latest
+
     steps:
+      # 1. Checkout mã nguồn repo
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Node.js
+      # 2. Cài đặt môi trường Node.js v20
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22' # Chuyển sang phiên bản ổn định mới hơn thay vì mặc định cũ
+          node-version: '20'
           cache: 'npm'
 
+      # 3. Cài đặt dependencies sạch từ package-lock.json
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Run notifier script
+      # 4. Chạy bot TypeScript (dùng tsx) kèm truyền biến môi trường từ Secrets
+      - name: Run AI Notifier Bot
         env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx tsx src/index.ts
+
+      # 5. Tự động commit và push file state.json (lịch sử chống trùng lặp) trở lại repo
+      - name: Commit and push state updates
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          git status
+          
+          # Kiểm tra xem state.json có thay đổi không; nếu có thì tiến hành commit & push
+          if git diff --quiet state.json; then
+            echo "No changes in state.json to commit."
+          else
+            git add state.json
+            git commit -m "chore: update bot state.json automatically [skip ci]"
+            git push
+          fi
