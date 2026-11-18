@@ -1,134 +1,259 @@
-import * as dotenv from 'dotenv';
-dotenv.config();
+import 'dotenv/config'; // Hỗ trợ đọc file .env khi chạy test cục bộ
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
 
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN; // Lấy token từ biến môi trường (Hỗ trợ GitHub Actions)
+// Hỗ trợ __dirname trong môi trường ES Module ("type": "module")
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-interface GitHubRepo {
-  name: string;
-  full_name: string;
-  html_url: string;
+export interface RepoItem {
+  category: string;
+  fullName: string;
+  stars: number;
   description: string;
-  stargazers_count: number;
-  language: string;
-  topics?: string[];
+  url: string;
+  createdAt: string;
 }
 
-interface CategoryConfig {
-  name: string;
-  emoji: string;
-  query: string;
+interface RepoHistoryRecord {
+  lastSentTimestamp: number;
+  lastSentStars: number;
+  initialRecordedStars: number;
+  totalGainSinceTracked: number;
 }
 
-// Định nghĩa các danh mục theo dõi chuyên sâu về Local AI, Agent, Markdown & MCP
-const CATEGORIES: CategoryConfig[] = [
-  {
-    name: "Coding & IDE Assistants",
-    emoji: "💻",
-    query: "topic:local-ai (cursor OR copilot OR IDE OR coding) pushed:>2026-11-01"
-  },
-  {
-    name: "Indie Game & 3D Dev",
-    emoji: "🎮",
-    query: "(topic:local-ai OR topic:ollama) (game OR unity OR unreal OR 3d OR asset) pushed:>2026-11-01"
-  },
-  {
-    name: "Video, Audio & Media",
-    emoji: "🎬",
-    query: "(topic:local-ai OR topic:llm) (video OR audio OR whisper OR voice OR generation) pushed:>2026-11-01"
-  },
-  {
-    name: "MCP & Agent Frameworks",
-    emoji: "🤖",
-    query: "(topic:mcp OR topic:agent) (markdown OR skill OR prompt OR workflow) pushed:>2026-11-01"
+interface StateFileStructure {
+  $schema?: string;
+  repos: Record<string, RepoHistoryRecord>;
+}
+
+const HISTORY_FILE = path.join(__dirname, '../data/sent-history.json');
+const COOLDOWN_DAYS = 5; // Rút ngắn còn 5 ngày để thích ứng với mảng AI chạy nhanh
+const COOLDOWN_MS = COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
+const MIN_STAR_GAIN = 100; // Ngưỡng tăng trưởng tối thiểu để tái xuất hiện sau cooldown
+const MAX_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // Giữ lịch sử 30 ngày
+
+// 1. Đọc state từ file JSON (có hỗ trợ tương thích ngược với định dạng cũ)
+function loadState(): StateFileStructure {
+  if (fs.existsSync(HISTORY_FILE)) {
+    try {
+      const data = fs.readFileSync(HISTORY_FILE, 'utf-8');
+      const parsed = JSON.parse(data);
+      
+      if (!parsed.repos) {
+        const migratedRepos: Record<string, RepoHistoryRecord> = {};
+        for (const [k, v] of Object.entries(parsed)) {
+          const val: any = v;
+          const stars = typeof val === 'object' && val.stars ? val.stars : 0;
+          migratedRepos[k] = {
+            lastSentTimestamp: typeof val === 'number' ? val : (val.timestamp || Date.now()),
+            lastSentStars: stars,
+            initialRecordedStars: stars,
+            totalGainSinceTracked: 0
+          };
+        }
+        return { repos: migratedRepos };
+      }
+      return parsed;
+    } catch (error) {
+      console.error('Lỗi khi đọc state, khởi tạo mới:', error);
+      return { repos: {} };
+    }
   }
-];
+  return { repos: {} };
+}
 
-async function fetchReposForQuery(query: string): Promise<GitHubRepo[]> {
-  const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=3`;
+// 2. Lưu state theo chuẩn V2 có kèm dọn dẹp bản ghi cũ > 30 ngày
+function saveState(state: StateFileStructure) {
+  const dir = path.dirname(HISTORY_FILE);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
 
-  const headers: Record<string, string> = {
-    'Accept': 'vnd.github+json',
-    'User-Agent': 'GitHub-AI-Notifier'
+  const now = Date.now();
+  const cleanedRepos: Record<string, RepoHistoryRecord> = {};
+
+  for (const [fullName, record] of Object.entries(state.repos)) {
+    if (now - record.lastSentTimestamp <= MAX_RETENTION_MS) {
+      cleanedRepos[fullName] = record;
+    }
+  }
+
+  const output: StateFileStructure = {
+    $schema: "Version 2.0 State Tracking",
+    repos: cleanedRepos
   };
 
-  if (GITHUB_TOKEN) {
-    headers['Authorization'] = `Bearer ${GITHUB_TOKEN}`;
-  }
-
-  const response = await fetch(url, { headers });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error(`GitHub API error (${response.status}): ${errText}`);
-    return [];
-  }
-
-  const data = await response.json() as { items?: GitHubRepo[] };
-  return data.items || [];
+  fs.writeFileSync(HISTORY_FILE, JSON.stringify(output, null, 2), 'utf-8');
 }
 
-async function sendTelegramMessage(text: string) {
-  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+// 3. Gửi tin nhắn qua Telegram Bot API
+async function sendTelegramMessage(message: string) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+
+  if (!token || !chatId) {
+    throw new Error('Thiếu biến môi trường TELEGRAM_BOT_TOKEN hoặc TELEGRAM_CHAT_ID.');
+  }
+
+  const url = `https://api.telegram.org/bot${token}/sendMessage`;
+  
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      chat_id: TELEGRAM_CHAT_ID,
-      text: text,
+      chat_id: chatId,
+      text: message,
       parse_mode: 'Markdown',
       disable_web_page_preview: true
-    })
+    }),
   });
 
-  // Bắt lỗi trực tiếp từ Telegram API nếu token hoặc chat_id không hợp lệ
   if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`Telegram API Error (${response.status}): ${errorBody}`);
+    const errorText = await response.text();
+    throw new Error(`Gửi tin nhắn Telegram thất bại: ${errorText}`);
+  }
+
+  console.log('Đã gửi thông báo Telegram thành công!');
+}
+
+// 4. Fetch dữ liệu từ GitHub Search API có chống timeout và phân loại
+async function fetchTrendingRepos(): Promise<RepoItem[]> {
+  const dateObj = new Date();
+  dateObj.setDate(dateObj.getDate() - 30);
+  const isoDate = dateObj.toISOString().split('T')[0];
+
+  const query = `topic:local-ai OR topic:ai-agents OR topic:mcp created:>${isoDate} sort:stars-desc`;
+  const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&per_page=15`;
+
+  try {
+    console.log(`Đang gọi GitHub API với query: ${query}`);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'github-ai-notifier-bot',
+        ...(process.env.GITHUB_TOKEN ? { 'Authorization': `Bearer ${process.env.GITHUB_TOKEN}` } : {})
+      },
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`GitHub API Error (${response.status}): ${errorText}`);
+    }
+
+    const data: any = await response.json();
+    
+    const repos: RepoItem[] = (data.items || []).map((item: any) => {
+      let category = '💻 Coding & IDE Assistants';
+      if (item.topics?.includes('mcp') || item.name.toLowerCase().includes('mcp')) {
+        category = '🔌 Model Context Protocol (MCP)';
+      } else if (item.topics?.includes('agent') || item.description?.toLowerCase().includes('agent')) {
+        category = '🤖 Autonomous Agents';
+      }
+
+      return {
+        category,
+        fullName: item.full_name,
+        stars: item.stargazers_count,
+        description: item.description ? item.description.slice(0, 120) + '...' : 'Không có mô tả.',
+        url: item.html_url,
+        createdAt: item.created_at
+      };
+    });
+
+    return repos;
+
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.error('Lỗi: Kết nối tới GitHub API bị quá thời gian (Timeout).');
+    } else {
+      console.error('Lỗi khi fetch dữ liệu từ GitHub:', error.message);
+    }
+    return [];
   }
 }
 
+// 5. Hàm chính kết hợp State V2 & Star Velocity
 async function main() {
   try {
-    console.log('Fetching and deduplicating local AI repos...');
-    let message = `🔥 *Top Local AI & Agent Highlights* 🔥\n`;
-    
-    // Set dùng để lọc bỏ các repo bị trùng lặp giữa các danh mục
-    const seenRepos = new Set<string>();
-    let totalFound = 0;
+    console.log('Bắt đầu quy trình quét và lọc repo theo State V2 & Star Velocity...');
+    const state = loadState();
+    const now = Date.now();
+    const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-    for (const cat of CATEGORIES) {
-      const repos = await fetchReposForQuery(cat.query);
-      
-      const uniqueRepos = repos.filter(repo => {
-        if (seenRepos.has(repo.full_name)) return false;
-        seenRepos.add(repo.full_name);
-        return true;
+    const fetchedRepos = await fetchTrendingRepos();
+
+    // Lọc repo theo tiêu chí Star Velocity & Cooldown 5 ngày
+    const noteworthyRepos = fetchedRepos.filter(repo => {
+      const record = state.repos[repo.fullName];
+      const createdDate = new Date(repo.createdAt).getTime();
+      const isBrandNew = (now - createdDate) <= ONE_WEEK_MS;
+
+      if (!record) {
+        return true; // Chưa từng lưu -> Gửi luôn
+      }
+
+      // Kiểm tra đang trong thời gian cooldown
+      const isInCooldown = (now - record.lastSentTimestamp) <= COOLDOWN_MS;
+      if (isInCooldown) {
+        return false;
+      }
+
+      // Qua cooldown, kiểm tra tốc độ tăng trưởng star
+      const starGain = repo.stars - record.lastSentStars;
+      return starGain >= MIN_STAR_GAIN;
+    });
+
+    let messageToTelegram = '';
+
+    if (noteworthyRepos.length === 0) {
+      messageToTelegram = `🤖 *GitHub AI Notifier*\n\n✨ Hôm nay không có repo nào mới hoặc đạt ngưỡng tăng trưởng bứt phá (tăng < ${MIN_STAR_GAIN} stars) trong chu kỳ qua. Hệ thống vẫn đang giám sát chặt chẽ! 🚀`;
+      console.log('Không có repo đáng chú ý nào thỏa mãn điều kiện.');
+    } else {
+      messageToTelegram = `🔥 *Top Local AI & Agent Highlights (Star Velocity V2)* 🔥\n\n`;
+
+      noteworthyRepos.forEach(repo => {
+        const record = state.repos[repo.fullName];
+        const prevStars = record ? record.lastSentStars : repo.stars;
+        const gain = repo.stars - prevStars;
+        const gainText = gain > 0 ? ` _(📈 +${gain} stars)_` : '';
+
+        messageToTelegram += `💻 *${repo.category}*\n- [${repo.fullName}](${repo.url}) (⭐ ${repo.stars})${gainText}\n  └ ${repo.description}\n\n`;
+        
+        // Cập nhật hoặc khởi tạo state V2
+        if (!record) {
+          state.repos[repo.fullName] = {
+            lastSentTimestamp: now,
+            lastSentStars: repo.stars,
+            initialRecordedStars: repo.stars,
+            totalGainSinceTracked: 0
+          };
+        } else {
+          state.repos[repo.fullName] = {
+            lastSentTimestamp: now,
+            lastSentStars: repo.stars,
+            initialRecordedStars: record.initialRecordedStars,
+            totalGainSinceTracked: repo.stars - record.initialRecordedStars
+          };
+        }
       });
 
-      if (uniqueRepos.length === 0) continue;
-
-      message += `\n${cat.emoji} *${cat.name}*\n`;
-      uniqueRepos.forEach((repo) => {
-        totalFound++;
-        const shortDesc = repo.description ? repo.description.slice(0, 80) + '...' : 'No description';
-        message += `• [${repo.full_name}](${repo.html_url}) (⭐ ${repo.stargazers_count})\n`;
-        message += `  └ _${shortDesc}_\n`;
-      });
+      saveState(state);
+      console.log(`Đã tìm thấy và xử lý ${noteworthyRepos.length} repo đạt chuẩn.`);
     }
 
-    if (totalFound === 0) {
-      console.log('No new unique repositories found.');
-      // Gửi thông báo nhẹ nhàng để xác nhận bot vẫn đang hoạt động bình thường
-      await sendTelegramMessage("🤖 *GitHub AI Notifier:* Bot đang chạy định kỳ, nhưng hôm nay chưa tìm thấy repo mới nào khớp bộ lọc.");
-      return;
-    }
+    await sendTelegramMessage(messageToTelegram);
 
-    await sendTelegramMessage(message);
-    console.log('Deduplicated notification sent to Telegram successfully!');
   } catch (error) {
-    console.error('Error running notifier:', error);
+    console.error('Lỗi trong quá trình chạy bot:', error);
     process.exit(1);
   }
 }
