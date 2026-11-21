@@ -2,8 +2,8 @@ name: GitHub AI Notifier Enterprise V3
 
 on:
   schedule:
-    # Chạy tự động mỗi ngày vào lúc 08:00 sáng UTC (có thể điều chỉnh theo giờ bạn muốn)
-    - cron: '0 8 * * *'
+    # Chạy tự động mỗi ngày vào lúc 00:00 sáng UTC (có thể điều chỉnh theo giờ bạn muốn)
+    - cron: '0 0 * * *'
   workflow_dispatch: # Cho phép kích hoạt thủ công từ tab Actions trên GitHub
 
 jobs:
