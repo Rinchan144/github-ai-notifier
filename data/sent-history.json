@@ -2,22 +2,22 @@
   "$schema": "Version 2.0 State Tracking",
   "repos": {
     "heydamir/unslop": {
-      "lastSentTimestamp": 1795019215467,
-      "lastSentStars": 18156,
+      "lastSentTimestamp": 1795504213033,
+      "lastSentStars": 20960,
       "initialRecordedStars": 18156,
-      "totalGainSinceTracked": 0
+      "totalGainSinceTracked": 2804
     },
     "JuneYaooo/rea-video": {
-      "lastSentTimestamp": 1795019215467,
-      "lastSentStars": 10607,
+      "lastSentTimestamp": 1795504213033,
+      "lastSentStars": 12782,
       "initialRecordedStars": 10607,
-      "totalGainSinceTracked": 0
+      "totalGainSinceTracked": 2175
     },
     "wangzan101/Mika": {
-      "lastSentTimestamp": 1795019215467,
-      "lastSentStars": 9064,
+      "lastSentTimestamp": 1795504213033,
+      "lastSentStars": 9806,
       "initialRecordedStars": 9064,
-      "totalGainSinceTracked": 0
+      "totalGainSinceTracked": 742
     },
     "rddmwmddr/android-ad-cleaner": {
       "lastSentTimestamp": 1795019215467,
@@ -26,10 +26,10 @@
       "totalGainSinceTracked": 0
     },
     "anhao/ai-pose-gallery-zh": {
-      "lastSentTimestamp": 1795019215467,
-      "lastSentStars": 7244,
+      "lastSentTimestamp": 1795504213033,
+      "lastSentStars": 7967,
       "initialRecordedStars": 7244,
-      "totalGainSinceTracked": 0
+      "totalGainSinceTracked": 723
     },
     "qybaihe/bla": {
       "lastSentTimestamp": 1795019215467,
@@ -38,22 +38,22 @@
       "totalGainSinceTracked": 0
     },
     "vercel-labs/ui": {
-      "lastSentTimestamp": 1795019215467,
-      "lastSentStars": 5763,
+      "lastSentTimestamp": 1795504213033,
+      "lastSentStars": 6939,
       "initialRecordedStars": 5763,
-      "totalGainSinceTracked": 0
+      "totalGainSinceTracked": 1176
     },
     "expo/exact": {
-      "lastSentTimestamp": 1795019215467,
-      "lastSentStars": 4655,
+      "lastSentTimestamp": 1795504213033,
+      "lastSentStars": 4998,
       "initialRecordedStars": 4655,
-      "totalGainSinceTracked": 0
+      "totalGainSinceTracked": 343
     },
     "modelflare-ai/AnyModelBot": {
-      "lastSentTimestamp": 1795019215467,
-      "lastSentStars": 4586,
+      "lastSentTimestamp": 1795504213033,
+      "lastSentStars": 4996,
       "initialRecordedStars": 4586,
-      "totalGainSinceTracked": 0
+      "totalGainSinceTracked": 410
     },
     "benjitaylor/skills": {
       "lastSentTimestamp": 1795019215467,
@@ -62,10 +62,10 @@
       "totalGainSinceTracked": 0
     },
     "NiazMorshed2007/reanimate": {
-      "lastSentTimestamp": 1795019215467,
-      "lastSentStars": 1774,
+      "lastSentTimestamp": 1795504213033,
+      "lastSentStars": 2421,
       "initialRecordedStars": 1774,
-      "totalGainSinceTracked": 0
+      "totalGainSinceTracked": 647
     },
     "WANGXIN-567/weread-book-exporter": {
       "lastSentTimestamp": 1795019215467,
@@ -149,6 +149,18 @@
       "lastSentTimestamp": 1795406946674,
       "lastSentStars": 703,
       "initialRecordedStars": 703,
+      "totalGainSinceTracked": 0
+    },
+    "simplexai-labs/linger": {
+      "lastSentTimestamp": 1795504213033,
+      "lastSentStars": 4248,
+      "initialRecordedStars": 4248,
+      "totalGainSinceTracked": 0
+    },
+    "R0Y00/Xbox2Windows": {
+      "lastSentTimestamp": 1795504213033,
+      "lastSentStars": 1675,
+      "initialRecordedStars": 1675,
       "totalGainSinceTracked": 0
     }
   }
