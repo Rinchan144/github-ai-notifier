@@ -122,10 +122,10 @@
       "totalGainSinceTracked": 0
     },
     "mdiri-ai/SoduWork": {
-      "lastSentTimestamp": 1795107329755,
-      "lastSentStars": 3926,
+      "lastSentTimestamp": 1795585490944,
+      "lastSentStars": 7726,
       "initialRecordedStars": 3926,
-      "totalGainSinceTracked": 0
+      "totalGainSinceTracked": 3800
     },
     "Tthanh2k6/turbo-browser-mcp": {
       "lastSentTimestamp": 1795229779287,
@@ -161,6 +161,12 @@
       "lastSentTimestamp": 1795504213033,
       "lastSentStars": 1675,
       "initialRecordedStars": 1675,
+      "totalGainSinceTracked": 0
+    },
+    "XinaTian/MROffice": {
+      "lastSentTimestamp": 1795585490944,
+      "lastSentStars": 4113,
+      "initialRecordedStars": 4113,
       "totalGainSinceTracked": 0
     }
   }
