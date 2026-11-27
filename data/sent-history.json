@@ -86,10 +86,10 @@
       "totalGainSinceTracked": 0
     },
     "waw666waw666/RegisterHub": {
-      "lastSentTimestamp": 1795019215467,
-      "lastSentStars": 299,
+      "lastSentTimestamp": 1795757323016,
+      "lastSentStars": 403,
       "initialRecordedStars": 299,
-      "totalGainSinceTracked": 0
+      "totalGainSinceTracked": 104
     },
     "BorisSun0424-boop/zaoba": {
       "lastSentTimestamp": 1795019215467,
@@ -185,6 +185,18 @@
       "lastSentTimestamp": 1795671254339,
       "lastSentStars": 194,
       "initialRecordedStars": 194,
+      "totalGainSinceTracked": 0
+    },
+    "Immortal-Protocols/lastbook": {
+      "lastSentTimestamp": 1795757323016,
+      "lastSentStars": 3094,
+      "initialRecordedStars": 3094,
+      "totalGainSinceTracked": 0
+    },
+    "ombralabs/ombra": {
+      "lastSentTimestamp": 1795757323016,
+      "lastSentStars": 155,
+      "initialRecordedStars": 155,
       "totalGainSinceTracked": 0
     }
   }
