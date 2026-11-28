@@ -140,16 +140,16 @@
       "totalGainSinceTracked": 0
     },
     "ersinkoc/phonebox": {
-      "lastSentTimestamp": 1795406946674,
-      "lastSentStars": 5119,
+      "lastSentTimestamp": 1795842229677,
+      "lastSentStars": 7779,
       "initialRecordedStars": 5119,
-      "totalGainSinceTracked": 0
+      "totalGainSinceTracked": 2660
     },
     "pierridotite/mobile-agent-testers": {
-      "lastSentTimestamp": 1795406946674,
-      "lastSentStars": 703,
+      "lastSentTimestamp": 1795842229677,
+      "lastSentStars": 2637,
       "initialRecordedStars": 703,
-      "totalGainSinceTracked": 0
+      "totalGainSinceTracked": 1934
     },
     "simplexai-labs/linger": {
       "lastSentTimestamp": 1795504213033,
@@ -197,6 +197,42 @@
       "lastSentTimestamp": 1795757323016,
       "lastSentStars": 155,
       "initialRecordedStars": 155,
+      "totalGainSinceTracked": 0
+    },
+    "sarpstar/cinecode": {
+      "lastSentTimestamp": 1795842229677,
+      "lastSentStars": 3139,
+      "initialRecordedStars": 3139,
+      "totalGainSinceTracked": 0
+    },
+    "ZiChuanLan/freebie-radar": {
+      "lastSentTimestamp": 1795842229677,
+      "lastSentStars": 3063,
+      "initialRecordedStars": 3063,
+      "totalGainSinceTracked": 0
+    },
+    "DIYgod/pinky": {
+      "lastSentTimestamp": 1795842229677,
+      "lastSentStars": 2843,
+      "initialRecordedStars": 2843,
+      "totalGainSinceTracked": 0
+    },
+    "N1nEmAn/sapper-v2": {
+      "lastSentTimestamp": 1795842229677,
+      "lastSentStars": 2683,
+      "initialRecordedStars": 2683,
+      "totalGainSinceTracked": 0
+    },
+    "albertirgi/replica": {
+      "lastSentTimestamp": 1795842229677,
+      "lastSentStars": 136,
+      "initialRecordedStars": 136,
+      "totalGainSinceTracked": 0
+    },
+    "narcosovalle173-glitch/browser-agent-operator-sandbox-pay": {
+      "lastSentTimestamp": 1795842229677,
+      "lastSentStars": 113,
+      "initialRecordedStars": 113,
       "totalGainSinceTracked": 0
     }
   }

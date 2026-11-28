@@ -4,6 +4,7 @@ Trang mục lục tổng hợp toàn bộ các bản tin AI & QA Automation High
 
 | Ngày (Date) | File Bản Tin | Trạng thái |
 | :--- | :--- | :--- |
+| **2026-11-28** | [Xem chi tiết](./2026-11-28.md) | 🟢 Active |
 | **2026-11-27** | [Xem chi tiết](./2026-11-27.md) | 🟢 Active |
 | **2026-11-26** | [Xem chi tiết](./2026-11-26.md) | 🟢 Active |
 | **2026-11-25** | [Xem chi tiết](./2026-11-25.md) | 🟢 Active |
